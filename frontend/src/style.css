@@ -1,31 +1,45 @@
+/* 重置所有元素的内外边距 */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+/* 定义全局CSS变量 */
 :root {
+  /* 设置字体系列 */
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* 设置行高 */
   line-height: 1.5;
+  /* 设置字体粗细 */
   font-weight: 400;
 
+  /* 设置颜色方案和基础颜色 */
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
+  /* 设置背景颜色 */
   background-color: #242424;
 
+  /* 字体合成、文本渲染优化设置 */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* 页面主体样式 */
 body {
+  /* 设置外边距为0 */
   margin: 0;
+  /* 设置最小宽度 */
   min-width: 320px;
+  /* 设置最小高度为100vh（视口高度） */
   min-height: 100vh;
 }
 
+/* 应用容器样式 */
 #app {
+  /* 占据全部宽度和高度 */
   width: 100%;
   height: 100vh;
 }

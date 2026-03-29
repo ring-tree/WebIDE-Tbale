@@ -1,2 +1,20 @@
-flask
-flask-cors
+# requirements.txt
+
+# 运行环境
+# python==3.12.9
+
+# 跨域传输
+Flask==3.1.3
+flask-cors==6.0.2
+
+# 代码补全
+jedi==0.19.2
+
+
+# 导入指令
+# pip install -r requirements.txt
+# pip 更新
+# python.exe -m pip install --upgrade pip
+# 调用清华源镜像
+# pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+# python.exe -m pip install -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple --upgrade pip
