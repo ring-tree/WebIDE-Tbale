@@ -1,0 +1,24 @@
+{
+  "name": "webide-table-project",
+  "version": "1.0.0",
+  "description": "A web IDE project with frontend and backend",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "server": "cd backend && python app.py",
+    "install-frontend": "cd frontend && npm install",
+    "install-backend": "cd backend && pip install -r requirements.txt",
+    "install": "npm run install-frontend && npm run install-backend",
+    "dev-all": "concurrently \"npm run server\" \"npm run dev\""
+  },
+  "keywords": [
+    "webide",
+    "vue",
+    "flask"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
