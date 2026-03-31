@@ -1,41 +1,61 @@
 @echo off
-REM 项目环境初始化脚本
+chcp 65001 >nul
+REM Project Startup Script (Optimized for Portable Python)
+setlocal enabledelayedexpansion
 
-REM 设置项目内 Node.js 路径
+REM ===================== CONFIG =====================
+SET PORTABLE_PYTHON=%~dp0backend\python313\python.exe
+SET VENV_PYTHON=%~dp0backend\.venv\Scripts\python.exe
+REM ==================================================
+
+REM Set portable Node.js path
 SET NODE_DIR=%~dp0node_env
 SET PATH=%NODE_DIR%;%PATH%
 
-REM 检查 Node.js 是否存在项目目录中
+REM Check Node.js
 IF NOT EXIST "%NODE_DIR%\node.exe" (
     echo Error: Portable Node.js not found at %NODE_DIR%\node.exe
-    echo Please download and extract Node.js binaries to the node_env folder
+    echo Please extract Node.js binaries into the "node_env" folder.
+    pause
+    exit /b 1
+)
+echo ✅ Portable Node.js loaded
+
+REM Auto-select Python environment (Priority: venv > portable Python)
+SET "PYTHON_EXE="
+IF EXIST "%VENV_PYTHON%" (
+    SET "PYTHON_EXE=%VENV_PYTHON%"
+    echo ✅ Python virtual environment activated
+) ELSE IF EXIST "%PORTABLE_PYTHON%" (
+    SET "PYTHON_EXE=%PORTABLE_PYTHON%"
+    echo ✅ Portable Python environment detected
+) ELSE (
+    echo ERROR: No Python environment found!
+    echo Please ensure one of these exists:
+    echo 1. Virtual env: backend\.venv\Scripts\python.exe
+    echo 2. Portable Python: backend\python\python.exe
     pause
     exit /b 1
 )
 
-REM 检查并激活 Python 虚拟环境
-IF EXIST "%~dp0backend\.venv\Scripts\activate.bat" (
-    call %~dp0backend\.venv\Scripts\activate.bat
-    echo Python virtual environment activated
-) ELSE (
-    echo Warning: Python virtual environment not found at backend\.venv
-)
+echo Using Python: !PYTHON_EXE!
 
-REM 检查前端依赖是否已安装
+REM Install frontend dependencies
 cd /d %~dp0frontend
 IF NOT EXIST "node_modules" (
     echo Installing frontend dependencies...
     npm install
 )
 
-REM 回到根目录
-cd /d %~dp0
+REM Start Backend Server (using the correct Python executable)
+start "Backend Server" cmd /k "cd /d "%~dp0backend" && echo Starting Flask server... && echo Server running on http://localhost:5000 && "!PYTHON_EXE!" app.py"
 
-REM 启动后端 Flask 服务器（新窗口中）
-start "Backend Server" cmd /k "cd /d %~dp0backend && echo Starting Flask server... && echo Server running on http://localhost:5000 && python app.py"
+timeout /t 2 /nobreak >nul
 
-REM 等待片刻以确保后端已启动
-timeout /t 3 /nobreak >nul
+REM Start Frontend Server
+start "Frontend Server" cmd /k "cd /d "%~dp0frontend" && echo Starting Frontend server... && echo Server running on http://localhost:5173 && npm run dev"
 
-REM 启动前端 Vite 服务器（新窗口中）
-start "Frontend Server" cmd /k "cd /d %~dp0frontend && echo Starting Frontend server... && echo Server running on http://localhost:5173 && npm run dev"
+echo.
+echo Project started successfully!
+echo Backend and Frontend are running in new windows.
+pause >nul

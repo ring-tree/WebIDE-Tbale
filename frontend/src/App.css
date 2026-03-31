@@ -1,0 +1,508 @@
+/* WebIDE 主布局样式 */
+
+/* 应用整体布局容器 */
+.app-layout {
+	height: 100vh; /* 占满整个视窗高度 */
+	display: flex; /* 使用弹性盒子布局 */
+	flex-direction: column; /* 垂直方向排列 */
+	background-color: #1e1e1e; /* 深色背景 */
+	color: #ccc; /* 默认文字颜色 */
+	overflow: hidden; /* 隐藏溢出内容 */
+}
+
+/* ============ 顶部工具栏 ============ */
+/* 顶部菜单栏样式 */
+.top-bar {
+	background-color: #3c3c3c; /* 灰色背景 */
+	padding: 0.5rem 1rem; /* 内边距 */
+	border-bottom: 1px solid #333; /* 下边框 */
+	z-index: 100; /* 层级设置 */
+}
+
+/* 工具栏按钮容器 */
+.toolbar {
+	display: flex; /* 弹性布局 */
+	gap: 1rem; /* 按钮间距 */
+	align-items: center;
+	flex-wrap: wrap;
+	justify-content: space-between;
+}
+
+/* 版本信息样式 */
+.version-info {
+	color: #00ff00;
+	font-size: 12px;
+	font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+	background-color: rgba(0, 255, 0, 0.1);
+	padding: 4px 8px;
+	border-radius: 4px;
+	margin-left: auto;
+}
+
+/* 文件操作区域 */
+.file-section {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-right: 20px;
+}
+
+/* 文件名输入框 */
+.file-name-input {
+	background-color: #333;
+	color: #fff;
+	border: 1px solid #555;
+	padding: 4px 8px;
+	border-radius: 3px;
+	font-size: 14px;
+	width: 200px;
+}
+
+.file-name-input:focus {
+	outline: none;
+	border-color: #007acc;
+}
+
+/* 文件列表 */
+.file-list {
+	position: absolute;
+	top: 100%;
+	left: 10px;
+	background-color: #333;
+	border: 1px solid #555;
+	border-radius: 4px;
+	padding: 10px;
+	margin-top: 5px;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+	min-width: 200px;
+	max-height: 300px;
+	overflow-y: auto;
+	z-index: 1000;
+}
+
+.file-list h4 {
+	margin: 0 0 10px 0;
+	font-size: 14px;
+	color: #ccc;
+	border-bottom: 1px solid #555;
+	padding-bottom: 5px;
+}
+
+.file-list ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.file-list li {
+	padding: 6px 10px;
+	cursor: pointer;
+	border-radius: 3px;
+	font-size: 14px;
+}
+
+.file-list li:hover {
+	background-color: #444;
+}
+
+/* 工具栏按钮样式 */
+.toolbar-btn {
+	background: none; /* 无背景 */
+	border: 1px solid transparent; /* 透明边框 */
+	color: #ccc; /* 文字颜色 */
+	padding: 0.2rem 0.5rem; /* 内边距 */
+	cursor: pointer; /* 鼠标悬停样式 */
+	border-radius: 3px; /* 圆角 */
+}
+
+/* 按钮悬停效果 */
+.toolbar-btn:hover {
+	background-color: #2d2d2d; /* 悬停背景色 */
+}
+
+/* ============ 主容器 ============ */
+/* 主内容区域容器 */
+.main-container {
+	display: flex; /* 水平排列 */
+	flex: 1; /* 占据剩余空间 */
+	overflow: hidden; /* 隐藏溢出 */
+}
+
+/* ============ 侧边栏通用样式 ============ */
+/* 侧边栏基础样式 */
+.sidebar {
+	background-color: #252526; /* 深灰背景 */
+	width: 250px; /* 默认宽度 */
+	min-width: 250px; /* 最小宽度 */
+	display: flex; /* 弹性布局 */
+	flex-direction: column; /* 垂直排列 */
+	transition: all 0.2s ease; /* 过渡动画 */
+	overflow: hidden; /* 隐藏溢出 */
+}
+
+/* 左侧边栏样式 */
+.left-sidebar {
+	border-right: 1px solid #333; /* 右边框 */
+}
+
+/* 右侧边栏：折叠状态下的整体布局 */
+.right-sidebar.collapsed {
+	width: 60px; /* 收缩后宽度，与左侧一致 */
+	overflow: hidden; /* 隐藏溢出内容 */
+}
+
+/* 拖动手柄样式 */
+.resize-handle {
+	position: absolute;
+	background-color: #333;
+	transition: background-color 0.2s;
+}
+
+.resize-handle:hover {
+	background-color: #007acc;
+}
+
+/* 左侧边栏右侧拖动手柄 */
+.resize-handle-right {
+	top: 0;
+	right: 0;
+	width: 4px;
+	height: 100%;
+	cursor: col-resize;
+}
+
+/* 右侧边栏左侧拖动手柄 */
+.resize-handle-left {
+	top: 0;
+	left: 0;
+	width: 4px;
+	height: 100%;
+	cursor: col-resize;
+}
+
+/* 终端顶部拖动手柄 */
+.resize-handle-top {
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	cursor: row-resize;
+}
+
+/* 确保边栏和终端区域有相对定位，使拖动手柄能正确定位 */
+.sidebar {
+	position: relative;
+}
+
+.terminal-section {
+	position: relative;
+}
+
+/* 右侧边栏：头部容器（仅按钮） */
+.right-sidebar.collapsed .sidebar-header {
+	display: flex; /* 启用 Flex 布局 */
+	align-items: center; /* 垂直居中按钮 */
+	justify-content: center; /* 水平居中按钮 */
+	height: 100%; /* 占满侧边栏高度 */
+	padding: 10px 0; /* 顶部/底部内边距，控制按钮与顶部的间距 */
+}
+
+/* 右侧边栏：折叠按钮（仅显示按钮） */
+.right-sidebar.collapsed .collapse-btn {
+	margin: 0; /* 移除按钮的外边距 */
+	width: 24px; /* 按钮宽度 */
+	height: 24px; /* 按钮高度 */
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* 右侧边栏：标题区域（收缩后隐藏） */
+.right-sidebar.collapsed .sidebar-title {
+	display: none; /* 收缩后隐藏标题 */
+}
+
+/* 侧边栏收起状态 */
+.sidebar.collapsed {
+	width: 30px;
+	min-width: 30px; /* 收起后宽度 */
+	overflow: hidden; /* 隐藏溢出 */
+}
+
+/* 侧边栏头部样式 */
+.sidebar-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.5rem;
+	background-color: #2d2d2d;
+	border-bottom: 1px solid #333;
+	font-weight: bold;
+}
+
+.sidebar.collapsed .sidebar-header {
+	/* 1. 启用 Flex 布局 */
+	display: flex;
+	/* 2. 垂直排列：按钮在上，标题在下 */
+	flex-direction: column;
+	/* 3. 【关键修改】垂直对齐方式改为顶部对齐 */
+	/* 原来是 justify-content: center; 现在改为 flex-start */
+	justify-content: flex-start;
+	/* 4. 水平居中：让按钮和标题都在侧边栏中间 */
+	align-items: center;
+	/* 5. 增加顶部内边距，给按钮留出顶部间距 */
+	padding-top: 12px;
+	/* 为了确保标题在下方有足够的空间，可以设置最小高度或使用 padding-bottom */
+	padding-bottom: 10px;
+	height: auto; /* 高度由内容决定，不再占满全屏 */
+}
+
+.sidebar-title-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.sidebar-title {
+	font-size: 12px;
+	color: #ccc;
+	white-space: nowrap;
+	opacity: 0.8;
+	transition: all 0.2s ease;
+}
+
+/* 按钮样式：保持居中，增加底部间距 */
+.sidebar.collapsed .collapse-btn {
+	margin-bottom: 8px; /* 按钮和标题之间的距离 */
+	width: 28px;
+	height: 28px;
+	border: 1px solid #444;
+	background: #222;
+	color: #fff;
+	cursor: pointer;
+	border-radius: 4px;
+}
+
+/* 标题样式：垂直显示，水平居中 */
+.sidebar.collapsed .sidebar-title {
+	/* 强制宽度，避免内容撑开 */
+	width: 100%;
+	/* 文字垂直显示 */
+	writing-mode: vertical-lr; /* 标准写法 */
+	text-orientation: upright; /* 保持直立 */
+	/* 水平居中 */
+	text-align: center;
+	/* 字体大小和颜色 */
+	font-size: 12px;
+	color: #ccc;
+	/* 避免文字紧贴边缘 */
+	padding: 0 4px;
+	/* 鼠标悬停效果 */
+	cursor: pointer;
+}
+
+.collapse-btn {
+	background: none;
+	border: 1px solid #555;
+	color: #ccc;
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+	border-radius: 3px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s ease;
+}
+
+.sidebar.collapsed .collapse-btn {
+	width: 20px;
+	height: 20px;
+	margin: 0;
+	padding: 0;
+}
+
+/* 侧边栏内容区域（大纲列表等）：收缩后隐藏或调整 */
+.sidebar.collapsed .sidebar-content {
+	display: none; /* 收缩时隐藏内容区域，只留头部 */
+	/* 如果你想显示图标列表，可以改为 flex 并调整样式 */
+}
+
+/* 折叠按钮悬停效果 */
+.collapse-btn:hover {
+	background-color: #3a3a3a; /* 悬停背景 */
+}
+
+/* 侧边栏内容区域 */
+.sidebar-content {
+	padding: 0.5rem; /* 内边距 */
+	overflow-y: auto; /* 垂直滚动 */
+	flex: 1; /* 占据剩余空间 */
+}
+
+/* ============ 中央区域 ============ */
+/* 中央内容区域 */
+.central-area {
+	flex: 1; /* 占据剩余空间 */
+	display: flex; /* 弹性布局 */
+	flex-direction: column; /* 垂直排列 */
+	overflow: hidden; /* 隐藏溢出 */
+}
+
+/* ============ 编辑器区域 ============ */
+/* 代码编辑器区域 */
+.editor-section {
+	flex: 1; /* 占据剩余空间 */
+	overflow: hidden; /* 隐藏溢出 */
+	min-height: 0; /* 最小高度 */
+}
+
+
+/* 【新增】运行按钮样式 */
+.run-btn {
+  background-color: #2196F3; /* 蓝色背景 */
+  color: white;
+  font-weight: bold;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.run-btn:hover {
+  background-color: #0b7dda;
+}
+
+/* ============ 终端区域 ============ */
+/* 终端区域 */
+.terminal-section {
+	flex: 1; /* 占据剩余空间 */
+	overflow: hidden; /* 隐藏溢出 */
+	min-height: 0; /* 最小高度 */
+}
+
+/* ============ 文件树 ============ */
+/* 文件树节点样式 */
+.file-tree .tree-node {
+	padding: 0.2rem 0.5rem; /* 内边距 */
+	cursor: pointer; /* 鼠标样式 */
+	border-radius: 3px; /* 圆角 */
+}
+
+/* 文件树节点悬停效果 */
+.file-tree .tree-node:hover {
+	background-color: #2a2d2e; /* 悬停背景 */
+}
+
+/* ============ 右侧 AI 面板 ============ */
+/* AI 侧边栏样式 */
+.ai-sidebar {
+	padding: 0; /* 无内边距 */
+	overflow: hidden; /* 隐藏溢出 */
+}
+
+/* ============ AI 侧边栏 ============ */
+/* AI 内容区域 */
+.ai-content {
+	padding: 1rem; /* 内边距 */
+}
+
+/* AI 面板标题 */
+.ai-panel h3 {
+	margin-top: 0; /* 上边距 */
+	margin-bottom: 1rem; /* 下边距 */
+	color: #ddd; /* 字体颜色 */
+}
+
+/* AI 输入框样式 */
+.ai-textarea {
+	width: 100%; /* 宽度占满 */
+	padding: 0.5rem; /* 内边距 */
+	background-color: #3c3c3c; /* 背景色 */
+	border: 1px solid #454545; /* 边框 */
+	border-radius: 3px; /* 圆角 */
+	color: #ddd; /* 字体颜色 */
+	resize: vertical; /* 垂直调整大小 */
+	margin-bottom: 0.5rem; /* 下边距 */
+}
+
+/* AI 提交按钮样式 */
+.ai-submit-btn {
+	background-color: #007acc; /* 蓝色背景 */
+	color: white; /* 白色字体 */
+	border: none; /* 无边框 */
+	padding: 0.3rem 0.8rem; /* 内边距 */
+	border-radius: 3px; /* 圆角 */
+	cursor: pointer; /* 鼠标样式 */
+}
+
+/* AI 提交按钮悬停效果 */
+.ai-submit-btn:hover {
+	background-color: #006bb3; /* 悬停背景 */
+}
+
+/* AI 回复区域 */
+.ai-response {
+	margin-top: 1rem; /* 上边距 */
+	padding-top: 1rem; /* 上内边距 */
+	border-top: 1px solid #333; /* 上边框 */
+}
+
+/* 回复内容样式 */
+.response-content {
+	background-color: #2d2d2d; /* 背景色 */
+	padding: 0.8rem; /* 内边距 */
+	border-radius: 3px; /* 圆角 */
+	font-size: 0.9rem; /* 字体大小 */
+	line-height: 1.4; /* 行高 */
+}
+
+/* ============ 大纲面板 ============ */
+/* 大纲面板样式 */
+.outline-panel {
+	padding: 0.5rem; /* 内边距 */
+}
+
+/* 大纲项目样式 */
+.outline-item {
+	display: flex; /* 弹性布局 */
+	align-items: center; /* 垂直居中 */
+	padding: 4px 8px; /* 内边距 */
+	cursor: pointer; /* 鼠标样式 */
+	border-radius: 4px; /* 圆角 */
+	transition: background-color 0.15s; /* 背景色过渡 */
+	font-size: 12px; /* 字体大小 */
+}
+
+/* 大纲项目悬停效果 */
+.outline-item:hover {
+	background-color: #2a2d2e; /* 悬停背景 */
+}
+
+/* 大纲类型标识 */
+.outline-type {
+	font-size: 10px; /* 字体大小 */
+	color: #007acc; /* 蓝色字体 */
+	background-color: rgba(0, 122, 204, 0.1); /* 半透明蓝色背景 */
+	padding: 2px 6px; /* 内边距 */
+	border-radius: 3px; /* 圆角 */
+	margin-right: 8px; /* 右边距 */
+	min-width: 50px; /* 最小宽度 */
+	text-align: center; /* 居中对齐 */
+}
+
+/* 大纲名称 */
+.outline-name {
+	color: #ccc; /* 字体颜色 */
+	white-space: nowrap; /* 不换行 */
+	overflow: hidden; /* 隐藏溢出 */
+	text-overflow: ellipsis; /* 省略号 */
+}
+
+/* ============ 大纲侧边栏 ============ */
+/* 大纲侧边栏内容 */
+.outline-sidebar {
+	padding: 0; /* 无内边距 */
+	overflow: hidden; /* 隐藏溢出 */
+}
