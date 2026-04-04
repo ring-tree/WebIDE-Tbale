@@ -1,4 +1,5 @@
 <script setup>
+<<<<<<< HEAD
 import { ref, reactive, nextTick } from "vue";
 import MonacoEditor from "./components/MonacoEditor.vue";
 import OutlineView from "./components/OutlineView.vue";
