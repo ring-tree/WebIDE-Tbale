@@ -25,6 +25,36 @@ let editorInstance = null;
 const isDragging = ref(false);
 const dragType = ref(''); // 'left', 'right', 'bottom'
 
+// 缓存DOM元素，避免重复查询
+const elements = {
+  leftSidebar: null,
+  rightSidebar: null,
+  centralArea: null,
+  terminalSection: null
+};
+
+// 初始化DOM元素缓存
+const initElements = () => {
+  elements.leftSidebar = document.querySelector('.sidebar.left-sidebar');
+  elements.rightSidebar = document.querySelector('.sidebar.right-sidebar');
+  elements.centralArea = document.querySelector('.central-area');
+  elements.terminalSection = document.querySelector('.terminal-section');
+  
+  // 添加硬件加速
+  if (elements.leftSidebar) {
+    elements.leftSidebar.style.willChange = 'width';
+    elements.leftSidebar.style.transform = 'translateZ(0)';
+  }
+  if (elements.rightSidebar) {
+    elements.rightSidebar.style.willChange = 'width';
+    elements.rightSidebar.style.transform = 'translateZ(0)';
+  }
+  if (elements.terminalSection) {
+    elements.terminalSection.style.willChange = 'height';
+    elements.terminalSection.style.transform = 'translateZ(0)';
+  }
+};
+
 // 获取Python版本号
 const fetchPythonVersion = async () => {
   try {
@@ -45,32 +75,83 @@ const fetchPythonVersion = async () => {
 // 组件挂载时获取Python版本
 fetchPythonVersion();
 
+// 使用nextTick确保DOM已渲染后初始化元素
+nextTick(() => {
+  initElements();
+});
+
 // 开始拖动
 const startDrag = (type, event) => {
+  // 阻止默认行为，防止文本选择
+  event.preventDefault();
+  event.stopPropagation();
+  
   isDragging.value = true;
   dragType.value = type;
+  
+  // 根据拖动类型设置willChange
+  switch (type) {
+    case 'left':
+      if (elements.leftSidebar) elements.leftSidebar.style.willChange = 'width';
+      break;
+    case 'right':
+      if (elements.rightSidebar) elements.rightSidebar.style.willChange = 'width';
+      break;
+    case 'bottom':
+      if (elements.terminalSection) elements.terminalSection.style.willChange = 'height';
+      break;
+  }
+  
   document.addEventListener('mousemove', onDrag);
   document.addEventListener('mouseup', stopDrag);
+  
+  // 添加全局样式防止文本选择
+  document.body.style.userSelect = 'none';
+  document.body.style.cursor = 'col-resize';
 };
 
-// 拖动中
+// 优化的拖动处理
 const onDrag = (event) => {
   if (!isDragging.value) return;
   
+  // 阻止默认行为，防止文本选择
+  event.preventDefault();
+  event.stopPropagation();
+  
+  // 直接更新DOM，不使用requestAnimationFrame，减少延迟
   switch (dragType.value) {
     case 'left':
-      if (!leftSidebarCollapsed.value) {
-        leftSidebarWidth.value = Math.max(100, event.clientX);
+      if (!leftSidebarCollapsed.value && elements.leftSidebar) {
+        // 直接计算并设置宽度，确保在合理范围内
+        const width = Math.max(100, Math.min(event.clientX, window.innerWidth * 0.4));
+        elements.leftSidebar.style.width = width + 'px';
+        // 异步更新Vue状态，不阻塞拖动
+        setTimeout(() => {
+          leftSidebarWidth.value = width;
+        }, 0);
       }
       break;
     case 'right':
-      if (!rightSidebarCollapsed.value) {
-        rightSidebarWidth.value = Math.max(100, window.innerWidth - event.clientX);
+      if (!rightSidebarCollapsed.value && elements.rightSidebar) {
+        // 直接计算并设置宽度，确保在合理范围内
+        const width = Math.max(100, Math.min(window.innerWidth - event.clientX, window.innerWidth * 0.4));
+        elements.rightSidebar.style.width = width + 'px';
+        // 异步更新Vue状态，不阻塞拖动
+        setTimeout(() => {
+          rightSidebarWidth.value = width;
+        }, 0);
       }
       break;
     case 'bottom':
-      if (!bottomBarCollapsed.value) {
-        bottomBarHeight.value = Math.max(100, window.innerHeight - event.clientY);
+      if (!bottomBarCollapsed.value && elements.centralArea && elements.terminalSection) {
+        const rect = elements.centralArea.getBoundingClientRect();
+        // 计算高度
+        const height = Math.max(100, Math.min(rect.bottom - event.clientY, rect.height - 50));
+        elements.terminalSection.style.height = height + 'px';
+        // 异步更新Vue状态，不阻塞拖动
+        setTimeout(() => {
+          bottomBarHeight.value = height;
+        }, 0);
       }
       break;
   }
@@ -82,6 +163,15 @@ const stopDrag = () => {
   dragType.value = '';
   document.removeEventListener('mousemove', onDrag);
   document.removeEventListener('mouseup', stopDrag);
+  
+  // 恢复正常样式
+  document.body.style.userSelect = '';
+  document.body.style.cursor = '';
+  
+  // 清除willChange属性，释放资源
+  if (elements.leftSidebar) elements.leftSidebar.style.willChange = '';
+  if (elements.rightSidebar) elements.rightSidebar.style.willChange = '';
+  if (elements.terminalSection) elements.terminalSection.style.willChange = '';
 };
 
 // 终端初始输出
@@ -100,10 +190,28 @@ const handleEditorMount = (editor) => {
 
 const toggleLeftSidebar = () => {
 	leftSidebarCollapsed.value = !leftSidebarCollapsed.value;
+	
+	// 确保侧边栏宽度正确
+	if (elements.leftSidebar) {
+		if (leftSidebarCollapsed.value) {
+			elements.leftSidebar.style.width = '30px';
+		} else {
+			elements.leftSidebar.style.width = leftSidebarWidth.value + 'px';
+		}
+	}
 };
 
 const toggleRightSidebar = () => {
 	rightSidebarCollapsed.value = !rightSidebarCollapsed.value;
+	
+	// 确保侧边栏宽度正确
+	if (elements.rightSidebar) {
+		if (rightSidebarCollapsed.value) {
+			elements.rightSidebar.style.width = '30px';
+		} else {
+			elements.rightSidebar.style.width = rightSidebarWidth.value + 'px';
+		}
+	}
 };
 
 const toggleBottomBar = () => {
@@ -198,7 +306,7 @@ const runCode = async () => {
 			<!-- 左侧边栏 - 大纲 -->
 			<aside 
 				:class="['sidebar', 'left-sidebar', { collapsed: leftSidebarCollapsed }]"
-				:style="{ width: leftSidebarCollapsed ? '30px' : leftSidebarWidth + 'px' }"
+				style="width: 250px"
 			>
 				<div class="sidebar-header">
 					<!-- 1. 折叠按钮 (保持在上) -->
@@ -246,7 +354,7 @@ const runCode = async () => {
 			<!-- 右侧边栏 -->
 			<aside 
 				:class="['sidebar', 'right-sidebar', { collapsed: rightSidebarCollapsed }]"
-				:style="{ width: rightSidebarCollapsed ? '30px' : rightSidebarWidth + 'px' }"
+				style="width: 250px"
 			>
 				<div class="sidebar-header">
 					<div class="sidebar-title-wrapper">

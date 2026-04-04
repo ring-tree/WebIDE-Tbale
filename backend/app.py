@@ -104,6 +104,9 @@ def update_code():
 def run_code():
 
     logger.info("后端收到了运行代码请求！")  # <--- 添加这行日志
+    logger.info(f"当前Python解释器: {sys.executable}")
+    logger.info(f"Python版本: {sys.version}")
+    logger.info(f"Python路径: {sys.path}")
     data = request.get_json()
     logger.info(f"收到的代码：{data['code']}") 
 
@@ -124,15 +127,14 @@ def run_code():
 
     try:
         # 将代码写入临时字符串并执行
-        # 使用 subprocess 调用 Python 解释器，传入代码
-        # 限制资源使用
+        # 使用系统 Python 解释器，确保能访问系统安装的包
         result = subprocess.run(
-            [sys.executable, '-c', code], # sys.executable 确保使用当前 Python 环境
-            capture_output=True,          # 捕获标准输出
-            text=True,                    # 返回字符串而非 bytes
-            timeout=3,                    # 设置更严格的超时，防止死循环
-            encoding='utf-8',             # 指定编码
-            cwd='.',                      # 限制工作目录
+            ['python', '-c', code], # 使用系统 Python 解释器
+            capture_output=True,    # 捕获标准输出
+            text=True,              # 返回字符串而非 bytes
+            timeout=3,              # 设置更严格的超时，防止死循环
+            encoding='utf-8',       # 指定编码
+            cwd='.',                # 限制工作目录
         )
         
         output = ""

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, onMounted } from 'vue'
 
 const props = defineProps({
   visible: {
@@ -15,16 +15,17 @@ const props = defineProps({
 const emit = defineEmits(['execute-command'])
 
 const output = ref([...props.initialOutput])
+const command = ref('')
+const commandHistory = ref([])
+const historyIndex = ref(-1)
+const outputContainer = ref(null)
+const currentDirectory = ref('E:\\WebIDE-Tbale')
 
 // 监听initialOutput的变化
 watch(() => props.initialOutput, (newValue) => {
   output.value = [...newValue]
   scrollToBottom()
 }, { deep: true })
-const command = ref('')
-const commandHistory = ref([])
-const historyIndex = ref(-1)
-const outputContainer = ref(null)
 
 // 自动滚动到底部
 const scrollToBottom = async () => {
@@ -44,37 +45,54 @@ const executeCommand = async () => {
   commandHistory.value.push(cmd)
   historyIndex.value = commandHistory.value.length
   
-  // 显示命令
-  output.value.push(`$ ${cmd}`)
+  // 显示命令（使用cmd风格的提示符）
+  output.value.push(`${currentDirectory.value}> ${cmd}`)
   
-  try {
-    // 调用后端执行命令
-    const response = await fetch('/terminal/execute', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ command: cmd })
-    })
-    
-    if (!response.ok) {
-      throw new Error(`服务器错误: ${response.status}`)
-    }
-    
-    const data = await response.json()
-    
-    // 显示执行结果
-    if (data.output) {
-      const outputLines = data.output.split('\n')
+  // 检查是否是本地命令
+  const cmdName = cmd.split(' ')[0].toLowerCase()
+  const localCommands = ['help', 'clear', 'echo', 'date', 'pwd']
+  
+  if (localCommands.includes(cmdName)) {
+    // 执行本地命令
+    const result = simulateCommand(cmd)
+    if (result) {
+      const outputLines = result.split('\n')
       outputLines.forEach(line => {
         if (line) {
           output.value.push(line)
         }
       })
     }
-  } catch (error) {
-    console.error('命令执行失败:', error)
-    output.value.push(`Error: ${error.message}`)
+  } else {
+    // 调用后端执行命令
+    try {
+      const response = await fetch('/terminal/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ command: cmd })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`服务器错误: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      // 显示执行结果
+      if (data.output) {
+        const outputLines = data.output.split('\n')
+        outputLines.forEach(line => {
+          if (line) {
+            output.value.push(line)
+          }
+        })
+      }
+    } catch (error) {
+      console.error('命令执行失败:', error)
+      output.value.push(`错误: ${error.message}`)
+    }
   }
   
   command.value = ''
@@ -158,7 +176,7 @@ const clearTerminal = () => {
     
     <!-- 输入区域 -->
     <div class="terminal-input-line">
-      <span class="prompt">$</span>
+      <span class="prompt">{{ currentDirectory }}></span>
       <input
         v-model="command"
         @keydown="handleKeydown"
@@ -176,8 +194,9 @@ const clearTerminal = () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #1e1e1e;
+  background-color: #1e1e1e; /* 与其他组件一致的背景色 */
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  color: #ccc; /* 与其他组件一致的文本颜色 */
 }
 
 .terminal-header {
@@ -238,9 +257,10 @@ const clearTerminal = () => {
 }
 
 .prompt {
-  color: #00ff00;
+  color: #00ff00; /* 保持绿色提示符 */
   margin-right: 8px;
   font-weight: bold;
+  font-size: 12px;
 }
 
 .terminal-input {
@@ -255,5 +275,23 @@ const clearTerminal = () => {
 
 .terminal-input::placeholder {
   color: #555;
+}
+
+/* 滚动条样式 */
+.terminal-output::-webkit-scrollbar {
+  width: 12px;
+}
+
+.terminal-output::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.terminal-output::-webkit-scrollbar-thumb {
+  background: #3c3c3c;
+  border-radius: 6px;
+}
+
+.terminal-output::-webkit-scrollbar-thumb:hover {
+  background: #4c4c4c;
 }
 </style>

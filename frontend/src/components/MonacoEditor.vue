@@ -146,25 +146,30 @@ onMounted(() => {
     const lineContent = model.getLineContent(position.lineNumber)
     const column = position.column
     
-    // 如果光标前有字符，强制触发补全
-    if (column > 1) {
-      const charBefore = lineContent[column - 2]
-      // 只有当光标前有字母、数字或下划线时才强制触发补全
-      if (/[a-zA-Z0-9_]/.test(charBefore)) {
-        // 清除之前的补全结果，强制重新获取
-        lastCompletions = []
-        sendToBackend(editor.value.getValue(), position)
-        return
-      }
-    }
+    // 检查光标前的内容
+    const textBeforeCursor = lineContent.substring(0, column - 1)
     
-    // 否则插入四个空格（用于缩进）
-    editor.value.trigger('keyboard', 'type', { text: '    ' })
+    // 仅在光标前无任何字符或全部为空格时，用Tab键为缩进
+    if (textBeforeCursor === '' || /^\s*$/.test(textBeforeCursor)) {
+      // 插入四个空格（用于缩进）
+      editor.value.trigger('keyboard', 'type', { text: '    ' })
+    } else {
+      // 其他情况皆为强制显示补全
+      // 清除之前的补全结果，强制重新获取
+      lastCompletions = []
+      sendToBackend(editor.value.getValue(), position)
+    }
   }, 'editorTextFocus')
 
   // 监听内容变化事件，重置补全状态并通知父组件
-  editor.value.onDidChangeModelContent(() => {
+  editor.value.onDidChangeModelContent((event) => {
+    // 重置补全状态，这样在用户输入时会隐藏补全框
     hasRequestedCompletions = false
+    lastCompletions = []
+    
+    // 隐藏补全框
+    editor.value.trigger('keyboard', 'hideSuggestWidget', {})
+    
     // 获取当前编辑器内容并通知父组件
     const currentValue = editor.value.getValue()
     emit('update:modelValue', currentValue)
@@ -178,9 +183,12 @@ onMounted(() => {
         return null
       }
       
-      // 过滤掉错误信息（如果后端返回错误，通常name为"Error"）
+      // 过滤掉错误信息和无效项
       const validCompletions = lastCompletions.filter(item => 
-        item.name && item.name !== 'Error' && item.name !== 'error'
+        item && item.name && 
+        item.name !== 'Error' && 
+        item.name !== 'error' &&
+        item.name.trim() !== ''
       )
       
       // 如果没有有效的补全项，返回null

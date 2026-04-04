@@ -354,7 +354,7 @@
 .editor-section {
 	flex: 1; /* 占据剩余空间 */
 	overflow: hidden; /* 隐藏溢出 */
-	min-height: 0; /* 最小高度 */
+	min-height: 200px; /* 最小高度 */
 }
 
 
@@ -377,9 +377,8 @@
 /* ============ 终端区域 ============ */
 /* 终端区域 */
 .terminal-section {
-	flex: 1; /* 占据剩余空间 */
 	overflow: hidden; /* 隐藏溢出 */
-	min-height: 0; /* 最小高度 */
+	min-height: 100px; /* 最小高度 */
 }
 
 /* ============ 文件树 ============ */
