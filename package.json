@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
-    "server": "cd backend && python app.py",
+    "server": "cd backend && ..\\python313\\python.exe app.py",
     "install-frontend": "cd frontend && npm install",
-    "install-backend": "cd backend && pip install -r requirements.txt",
+    "install-backend": "cd backend && ..\\python313\\python.exe -m pip install -r requirements.txt",
     "install": "npm run install-frontend && npm run install-backend",
     "dev-all": "concurrently \"npm run server\" \"npm run dev\""
   },

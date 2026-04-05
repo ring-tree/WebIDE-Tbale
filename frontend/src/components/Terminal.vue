@@ -19,7 +19,8 @@ const command = ref('')
 const commandHistory = ref([])
 const historyIndex = ref(-1)
 const outputContainer = ref(null)
-const currentDirectory = ref('E:\\WebIDE-Tbale')
+const inputElement = ref(null)
+const currentDirectory = ref('E:\WebIDE-Tbale')
 
 // 监听initialOutput的变化
 watch(() => props.initialOutput, (newValue) => {
@@ -33,11 +34,22 @@ const scrollToBottom = async () => {
   if (outputContainer.value) {
     outputContainer.value.scrollTop = outputContainer.value.scrollHeight
   }
+  // 聚焦到输入元素
+  if (inputElement.value) {
+    inputElement.value.focus()
+  }
 }
 
 // 执行命令
 const executeCommand = async () => {
-  if (!command.value.trim()) return
+  if (!command.value.trim()) {
+    // 当用户没有任何输入直接回车时，添加一个新的输入行
+    // 与真实终端行为一致，显示一个新的提示符
+    output.value.push(`${currentDirectory.value}>`)
+    command.value = ''
+    await scrollToBottom()
+    return
+  }
   
   const cmd = command.value.trim()
   
@@ -52,6 +64,7 @@ const executeCommand = async () => {
   const cmdName = cmd.split(' ')[0].toLowerCase()
   const localCommands = ['help', 'clear', 'echo', 'date', 'pwd']
   
+  // 允许pip命令通过后端执行
   if (localCommands.includes(cmdName)) {
     // 执行本地命令
     const result = simulateCommand(cmd)
@@ -104,7 +117,18 @@ const executeCommand = async () => {
 // 模拟命令执行（后期替换为真实接口）
 const simulateCommand = (cmd) => {
   const commands = {
-    'help': '可用命令：help, clear, echo [text], date, pwd',
+    'help': '可用命令：\n' +
+            '  help                - 显示此帮助信息\n' +
+            '  clear               - 清空终端内容\n' +
+            '  echo [text]         - 显示文本内容\n' +
+            '  date                - 显示当前日期和时间\n' +
+            '  pwd                 - 显示当前工作目录\n' +
+            '  ls                  - 列出当前目录文件\n' +
+            '  python --version    - 显示Python版本\n' +
+            '  pip list            - 列出已安装的Python库\n' +
+            '  pip --version       - 显示pip版本\n' +
+            '\n' +
+            '注意：暂不支持Ctrl+c中断命令',
     'clear': () => { output.value = []; return ''; },
     'date': new Date().toString(),
     'pwd': '/home/user/project',
@@ -150,7 +174,13 @@ const handleKeydown = (e) => {
 // 清空终端
 const clearTerminal = () => {
   output.value = []
+  scrollToBottom()
 }
+
+// 组件挂载后聚焦到输入元素
+onMounted(() => {
+  scrollToBottom()
+})
 </script>
 
 <template>
@@ -164,7 +194,7 @@ const clearTerminal = () => {
     </div>
     
     <!-- 输出区域 -->
-    <div class="terminal-output" ref="outputContainer">
+    <div class="terminal-output" ref="outputContainer" @click="inputElement?.focus()">
       <div 
         v-for="(line, index) in output" 
         :key="index"
@@ -172,19 +202,19 @@ const clearTerminal = () => {
       >
         {{ line }}
       </div>
-    </div>
-    
-    <!-- 输入区域 -->
-    <div class="terminal-input-line">
-      <span class="prompt">{{ currentDirectory }}></span>
-      <input
-        v-model="command"
-        @keydown="handleKeydown"
-        placeholder="输入命令..."
-        class="terminal-input"
-        autocomplete="off"
-        spellcheck="false"
-      />
+      
+      <!-- 命令输入行 -->
+      <div class="terminal-input-line">
+        <span class="prompt">{{ currentDirectory }}></span>
+        <input
+          ref="inputElement"
+          v-model="command"
+          @keydown="handleKeydown"
+          class="terminal-input"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -251,9 +281,9 @@ const clearTerminal = () => {
 .terminal-input-line {
   display: flex;
   align-items: center;
-  padding: 6px 8px;
-  border-top: 1px solid #333;
-  background-color: #1e1e1e;
+  padding: 0;
+  margin: 0;
+  background-color: transparent;
 }
 
 .prompt {
@@ -271,6 +301,8 @@ const clearTerminal = () => {
   font-family: inherit;
   font-size: 12px;
   outline: none;
+  padding: 0;
+  margin: 0;
 }
 
 .terminal-input::placeholder {

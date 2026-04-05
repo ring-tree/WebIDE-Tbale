@@ -1,8 +1,26 @@
+# 导入环境配置
+import os
+import sys
+# 添加项目根目录到Python路径
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# 打印调试信息
+print(f"当前工作目录: {os.getcwd()}")
+print(f"Python路径: {sys.path}")
+
+try:
+    from env_config import PYTHON_EXE
+    print(f"成功导入PYTHON_EXE: {PYTHON_EXE}")
+    print(f"PYTHON_EXE存在: {os.path.exists(PYTHON_EXE)}")
+except Exception as e:
+    print(f"导入env_config失败: {str(e)}")
+    PYTHON_EXE = sys.executable
+    print(f"使用系统Python: {PYTHON_EXE}")
+
 from flask import Flask, request, jsonify
 # from flask_cors import CORS
 import jedi
 import subprocess
-import sys
 import logging
 
 # 配置日志
@@ -127,9 +145,9 @@ def run_code():
 
     try:
         # 将代码写入临时字符串并执行
-        # 使用系统 Python 解释器，确保能访问系统安装的包
+        # 使用项目中的便携式 Python 环境
         result = subprocess.run(
-            ['python', '-c', code], # 使用系统 Python 解释器
+            [PYTHON_EXE, '-c', code], # 使用项目中的便携式 Python 解释器
             capture_output=True,    # 捕获标准输出
             text=True,              # 返回字符串而非 bytes
             timeout=3,              # 设置更严格的超时，防止死循环
@@ -248,6 +266,10 @@ def execute_terminal_command():
         is_allowed = False
         for allowed_cmd in allowed_commands:
             if command.startswith(allowed_cmd.split(' ')[0]):
+                # 禁止pip install命令
+                if command.startswith('pip install'):
+                    is_allowed = False
+                    break
                 is_allowed = True
                 break
         
@@ -256,13 +278,24 @@ def execute_terminal_command():
             return jsonify({'status': 'error', 'output': 'Error: Command not allowed'})
         
         # 执行命令
-        result = subprocess.run(
-            command, 
-            shell=True, 
-            capture_output=True, 
-            text=True, 
-            timeout=10
-        )
+        # 对于Python相关命令，使用项目中的便携式Python环境
+        if command.startswith('python'):
+            # 替换python命令为项目中的便携式Python解释器路径
+            modified_command = command.replace('python', PYTHON_EXE, 1)
+            result = subprocess.run(modified_command, shell=True, capture_output=True, text=True, timeout=10)
+        elif command.startswith('pip'):
+            # 使用项目中的便携式Python环境的pip
+            pip_command = f"{PYTHON_EXE} -m pip {command[4:]}"
+            result = subprocess.run(pip_command, shell=True, capture_output=True, text=True, timeout=10)
+        else:
+            # 其他命令直接执行
+            result = subprocess.run(
+                command, 
+                shell=True, 
+                capture_output=True, 
+                text=True, 
+                timeout=10
+            )
         
         output = ""
         if result.stdout:
@@ -286,12 +319,12 @@ def get_python_version():
     获取Python版本号
     """
     try:
-        # 执行python --version命令
+        # 使用项目中的便携式Python环境
         result = subprocess.run(
-            'python --version', 
-            shell=True, 
-            capture_output=True, 
-            text=True
+            [PYTHON_EXE, "--version"],
+            capture_output = True,
+            text = True,
+            shell=False  # 确保不使用shell
         )
         
         version = ""

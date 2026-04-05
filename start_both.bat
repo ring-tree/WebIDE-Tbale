@@ -4,8 +4,8 @@ REM Project Startup Script (Optimized for Portable Python)
 setlocal enabledelayedexpansion
 
 REM ===================== CONFIG =====================
+REM 定义便携式Python环境路径
 SET PORTABLE_PYTHON=%~dp0backend\python313\python.exe
-SET VENV_PYTHON=%~dp0backend\.venv\Scripts\python.exe
 REM ==================================================
 
 REM Set portable Node.js path
@@ -21,19 +21,15 @@ IF NOT EXIST "%NODE_DIR%\node.exe" (
 )
 echo ✅ Portable Node.js loaded
 
-REM Auto-select Python environment (Priority: venv > portable Python)
+REM Use only portable Python environment
 SET "PYTHON_EXE="
-IF EXIST "%VENV_PYTHON%" (
-    SET "PYTHON_EXE=%VENV_PYTHON%"
-    echo ✅ Python virtual environment activated
-) ELSE IF EXIST "%PORTABLE_PYTHON%" (
+IF EXIST "%PORTABLE_PYTHON%" (
     SET "PYTHON_EXE=%PORTABLE_PYTHON%"
     echo ✅ Portable Python environment detected
 ) ELSE (
     echo ERROR: No Python environment found!
-    echo Please ensure one of these exists:
-    echo 1. Virtual env: backend\.venv\Scripts\python.exe
-    echo 2. Portable Python: backend\python\python.exe
+    echo Please ensure portable Python exists at:
+    echo %PORTABLE_PYTHON%
     pause
     exit /b 1
 )
