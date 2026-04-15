@@ -4,6 +4,7 @@ import MonacoEditor from "./components/MonacoEditor.vue";
 import OutlineView from "./components/OutlineView.vue";
 import AiChat from "./components/AiChat.vue";
 import Terminal from "./components/Terminal.vue";
+import FileTree from "./components/FileTree.vue";
 import "./App.css";
 
 // 状态管理
@@ -12,11 +13,16 @@ const leftSidebarCollapsed = ref(false);
 const rightSidebarCollapsed = ref(false);
 const bottomBarCollapsed = ref(false);
 const pythonVersion = ref("Python");
+const projectPath = ref("project");
+
+// 当前打开的文件路径
+const currentFilePath = ref(null);
 
 // 边栏大小
 const leftSidebarWidth = ref(250);
 const rightSidebarWidth = ref(250);
 const bottomBarHeight = ref(200);
+const fileTreeHeight = ref(200);
 
 // 编辑器实例
 let editorInstance = null;
@@ -85,10 +91,10 @@ const startDrag = (type, event) => {
   // 阻止默认行为，防止文本选择
   event.preventDefault();
   event.stopPropagation();
-  
+
   isDragging.value = true;
   dragType.value = type;
-  
+
   // 根据拖动类型设置willChange
   switch (type) {
     case 'left':
@@ -100,24 +106,26 @@ const startDrag = (type, event) => {
     case 'bottom':
       if (elements.terminalSection) elements.terminalSection.style.willChange = 'height';
       break;
+    case 'fileTree':
+      break;
   }
-  
+
   document.addEventListener('mousemove', onDrag);
   document.addEventListener('mouseup', stopDrag);
-  
+
   // 添加全局样式防止文本选择
   document.body.style.userSelect = 'none';
-  document.body.style.cursor = 'col-resize';
+  document.body.style.cursor = type === 'fileTree' ? 'row-resize' : 'col-resize';
 };
 
 // 优化的拖动处理
 const onDrag = (event) => {
   if (!isDragging.value) return;
-  
+
   // 阻止默认行为，防止文本选择
   event.preventDefault();
   event.stopPropagation();
-  
+
   // 直接更新DOM，不使用任何异步操作，确保实时响应
   switch (dragType.value) {
     case 'left':
@@ -146,6 +154,25 @@ const onDrag = (event) => {
         elements.terminalSection.style.height = height + 'px';
         // 同步更新Vue状态，确保状态与DOM一致
         bottomBarHeight.value = height;
+      }
+      break;
+    case 'fileTree':
+      if (elements.leftSidebar && !leftSidebarCollapsed.value) {
+        const fileTreeEl = elements.leftSidebar.querySelector('.file-tree-container');
+        const outlineWrapperEl = elements.leftSidebar.querySelector('.outline-wrapper');
+        const resizeHandleEl = elements.leftSidebar.querySelector('.resize-handle-horizontal');
+        if (fileTreeEl && outlineWrapperEl && resizeHandleEl) {
+          const handleRect = resizeHandleEl.getBoundingClientRect();
+          const newHandleTop = event.clientY;
+          const newFileTreeHeight = newHandleTop - fileTreeEl.getBoundingClientRect().top;
+          const newOutlineHeight = outlineWrapperEl.getBoundingClientRect().bottom - newHandleTop;
+
+          if (newFileTreeHeight >= 50 && newOutlineHeight >= 50) {
+            fileTreeEl.style.height = newFileTreeHeight + 'px';
+            outlineWrapperEl.style.height = newOutlineHeight + 'px';
+            fileTreeHeight.value = newFileTreeHeight;
+          }
+        }
       }
       break;
   }
@@ -224,6 +251,59 @@ const onExecuteCommand = (cmd) => {
 	console.log("Command executed:", cmd);
 };
 
+const onFileSelected = async (file) => {
+	console.log("File selected:", file.path);
+	currentFilePath.value = file.path;
+	try {
+		const response = await fetch('/load', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ filename: file.path })
+		});
+		if (!response.ok) throw new Error('加载文件失败');
+		const data = await response.json();
+		if (data.status === 'success') {
+			code.value = data.content;
+		}
+	} catch (error) {
+		console.error('加载文件失败:', error);
+	}
+};
+
+// 保存文件到后端
+const saveFile = async () => {
+	if (!currentFilePath.value) {
+		terminalOutput.value.push(">>> 保存失败: 请先打开一个文件");
+		return;
+	}
+
+	if (!code.value.trim()) {
+		terminalOutput.value.push(">>> 保存失败: 编辑器内容为空");
+		return;
+	}
+
+	try {
+		const response = await fetch('/save', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				filename: currentFilePath.value,
+				content: code.value
+			})
+		});
+		if (!response.ok) throw new Error('保存文件失败');
+		const data = await response.json();
+		if (data.status === 'success') {
+			terminalOutput.value.push(`>>> 文件保存成功: ${currentFilePath.value}`);
+		} else {
+			terminalOutput.value.push(`>>> 保存失败: ${data.message}`);
+		}
+	} catch (error) {
+		console.error('保存文件失败:', error);
+		terminalOutput.value.push(`>>> 保存失败: ${error.message}`);
+	}
+};
+
 
 //运行代码逻辑
 const runCode = async () => {
@@ -287,7 +367,7 @@ const runCode = async () => {
 		<header class="top-bar">
 			<div class="toolbar">
 				<button class="toolbar-btn" @click="toggleLeftSidebar">大纲</button>
-				<button class="toolbar-btn">编辑</button>
+				<button class="toolbar-btn" @click="saveFile">保存编辑</button>
 				<button class="toolbar-btn" @click="toggleRightSidebar">AIchat</button>
 				<button class="toolbar-btn" @click="runCode" type="button">运行</button>
 				<button class="toolbar-btn" @click="toggleBottomBar">终端</button>
@@ -297,26 +377,32 @@ const runCode = async () => {
 
 		<!-- 主容器 -->
 		<div class="main-container">
-			<!-- 左侧边栏 - 大纲 -->
-			<aside 
+			<!-- 左侧边栏 - 文件树和大纲 -->
+			<aside
 				:class="['sidebar', 'left-sidebar', { collapsed: leftSidebarCollapsed }]"
 				style="width: 250px"
 			>
 				<div class="sidebar-header">
-					<!-- 1. 折叠按钮 (保持在上) -->
 					<button @click="toggleLeftSidebar" class="collapse-btn">
 						{{ leftSidebarCollapsed ? "»" : "«" }}
 					</button>
-
-					<!-- 2. 标题 (移出 wrapper，直接作为 flex item) -->
-					<!-- <span class="sidebar-title">大纲</span> -->
 				</div>
 
-				<div v-show="!leftSidebarCollapsed" class="sidebar-content outline-sidebar">
-					<OutlineView :editor="editorInstance" language="python" @jump-to-line="onJumpToLine" />
+				<div v-show="!leftSidebarCollapsed" class="sidebar-content left-sidebar-content">
+					<div class="file-tree-container">
+						<FileTree :project-path="projectPath" @file-selected="onFileSelected" />
+					</div>
+					<div class="outline-wrapper">
+						<div
+							class="resize-handle resize-handle-horizontal"
+							@mousedown="startDrag('fileTree', $event)"
+						></div>
+						<div class="outline-container">
+							<OutlineView :editor="editorInstance" language="python" @jump-to-line="onJumpToLine" />
+						</div>
+					</div>
 				</div>
-				<!-- 左侧边栏拖动手柄 -->
-				<div 
+				<div
 					v-show="!leftSidebarCollapsed"
 					class="resize-handle resize-handle-right"
 					@mousedown="startDrag('left', $event)"

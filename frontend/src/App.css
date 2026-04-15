@@ -136,7 +136,6 @@
 	min-width: 250px; /* 最小宽度 */
 	display: flex; /* 弹性布局 */
 	flex-direction: column; /* 垂直排列 */
-	transition: all 0.2s ease; /* 过渡动画 */
 	overflow: hidden; /* 隐藏溢出 */
 }
 
@@ -155,7 +154,6 @@
 .resize-handle {
 	position: absolute;
 	background-color: #333;
-	transition: background-color 0.2s;
 }
 
 .resize-handle:hover {
@@ -187,6 +185,19 @@
 	right: 0;
 	height: 4px;
 	cursor: row-resize;
+}
+
+/* 文件树和大纲之间的水平拖动手柄 */
+.resize-handle-horizontal {
+	width: 100%;
+	height: 4px;
+	background-color: #3c3c3c;
+	cursor: row-resize;
+	flex-shrink: 0;
+}
+
+.resize-handle-horizontal:hover {
+	background-color: #007acc;
 }
 
 /* 确保边栏和终端区域有相对定位，使拖动手柄能正确定位 */
@@ -504,4 +515,43 @@
 .outline-sidebar {
 	padding: 0; /* 无内边距 */
 	overflow: hidden; /* 隐藏溢出 */
+}
+
+/* ============ 左侧边栏内容布局 ============ */
+.left-sidebar-content {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 0;
+	overflow: hidden;
+}
+
+.file-tree-container {
+	overflow: hidden;
+	min-height: 50px;
+	height: 40%;
+	max-height: 70%;
+}
+
+.outline-wrapper {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	min-height: 50px;
+	height: 60%;
+}
+
+.outline-container {
+	flex: 1;
+	overflow: hidden;
+}
+
+/* 左侧边栏的 .sidebar-content 需要特殊处理 */
+.left-sidebar {
+	overflow: hidden;
+}
+
+.left-sidebar .sidebar-content {
+	padding: 0;
+	overflow: hidden;
 }

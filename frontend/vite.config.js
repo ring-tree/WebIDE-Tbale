@@ -13,33 +13,49 @@ export default defineConfig({
     // 关键配置：设置代理
     proxy: {
       // 代理 /run 和 /update 请求到 Flask 后端
+      '/api/files': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
+      },
+      '/api/files/create': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
+      },
+      '/api/files/delete': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
+      },
+      '/api/files/rename': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
+      },
       '/run': {
-        target: 'http://localhost:5000', // 后端 Flask 服务器地址
-        changeOrigin: true // 修改请求头中的 Origin 为目标地址
+        target: 'http://localhost:5000',
+        changeOrigin: true
       },
       '/update': {
-        target: 'http://localhost:5000', // 后端 Flask 服务器地址
-        changeOrigin: true // 修改请求头中的 Origin 为目标地址
+        target: 'http://localhost:5000',
+        changeOrigin: true
       },
       '/save': {
-        target: 'http://localhost:5000', // 后端 Flask 服务器地址
-        changeOrigin: true // 修改请求头中的 Origin 为目标地址
+        target: 'http://localhost:5000',
+        changeOrigin: true
       },
       '/load': {
-        target: 'http://localhost:5000', // 后端 Flask 服务器地址
-        changeOrigin: true // 修改请求头中的 Origin 为目标地址
-      },
-      '/files': {
-        target: 'http://localhost:5000', // 后端 Flask 服务器地址
-        changeOrigin: true // 修改请求头中的 Origin 为目标地址
+        target: 'http://localhost:5000',
+        changeOrigin: true
       },
       '/terminal/execute': {
-        target: 'http://localhost:5000', // 后端 Flask 服务器地址
-        changeOrigin: true // 修改请求头中的 Origin 为目标地址
+        target: 'http://localhost:5000',
+        changeOrigin: true
       },
       '/python/version': {
-        target: 'http://localhost:5000', // 后端 Flask 服务器地址
-        changeOrigin: true // 修改请求头中的 Origin 为目标地址
+        target: 'http://localhost:5000',
+        changeOrigin: true
+      },
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
       }
     }
   },

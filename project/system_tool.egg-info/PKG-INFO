@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: system_tool
+Version: 0.1.0
+Summary: A custom data processing toolbox
+Author: YourName
+Requires-Python: >=3.6
+License-File: LICENSE
+Requires-Dist: pandas
+Requires-Dist: numpy
+Requires-Dist: matplotlib
+Requires-Dist: scikit-learn
+Dynamic: author
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

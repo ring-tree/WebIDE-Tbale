@@ -4,3 +4,6 @@ package.json
 
 # dependencies
 node_modules/
+
+*.js
+*.mjs

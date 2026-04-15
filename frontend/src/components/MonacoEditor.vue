@@ -4,7 +4,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, shallowRef } from 'vue'
+import { ref, onMounted, onBeforeUnmount, shallowRef, watch } from 'vue'
 import * as monaco from 'monaco-editor'
 
 // 定义组件属性
@@ -213,6 +213,13 @@ onMounted(() => {
 
   // 触发编辑器已挂载事件
   emit('editor-mounted', editor.value)
+
+  // 监听 modelValue 变化，当父组件加载新文件时更新编辑器内容
+  watch(() => props.modelValue, (newValue) => {
+    if (editor.value && newValue !== editor.value.getValue()) {
+      editor.value.setValue(newValue || '')
+    }
+  })
 })
 
 // 组件卸载前清理资源
