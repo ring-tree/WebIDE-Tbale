@@ -26,3 +26,6 @@ coverage
 
 # nyc test coverage
 .vscode/
+
+API_DOCUMENTATION.md
+test_api.py

@@ -1,5 +1,52 @@
+<template>
+  <div class="file-tree">
+    <div class="file-tree-header">
+      <span class="file-tree-title">{{ projectPath }}</span>
+      <div class="header-actions">
+        <button class="action-btn" @click="showCreateDialog('file')" title="新建文件">📄</button>
+        <button class="action-btn" @click="showCreateDialog('directory')" title="新建文件夹">📁</button>
+        <button class="action-btn" @click="collapseAll" title="折叠全部">⬇</button>
+        <button class="refresh-btn" @click="fetchFileTree" title="刷新">↻</button>
+      </div>
+    </div>
+    <div class="file-tree-content">
+      <template v-for="child in fileTree.children" :key="child.path">
+        <TreeNode
+          :node="child"
+          :depth="0"
+          :expanded-folders="expandedFolders"
+          :selected-file="selectedFile"
+          @toggle="toggleFolder"
+          @select="selectFile"
+          @context-menu="showContextMenu"
+        />
+      </template>
+    </div>
+
+    <Teleport to="body">
+      <div
+        v-show="contextMenu.show"
+        class="context-menu"
+        :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+      >
+        <template v-if="!contextMenu.isReadonly">
+          <div class="menu-item" @click="showCreateDialog('file')">新建文件</div>
+          <div class="menu-item" @click="showCreateDialog('directory')">新建文件夹</div>
+          <div class="menu-divider"></div>
+          <div class="menu-item" @click="renameNode">重命名</div>
+          <div class="menu-item danger" @click="deleteNode">删除</div>
+        </template>
+        <template v-else>
+          <div class="menu-item readonly">只读目录</div>
+        </template>
+      </div>
+    </Teleport>
+  </div>
+</template>
+
 <script setup>
 import { ref, reactive, watch } from 'vue';
+import TreeNode from './TreeNode.vue';
 
 const props = defineProps({
   projectPath: {
@@ -9,6 +56,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['file-selected', 'refresh']);
+
+const READONLY_PREFIXES = ['project/toolBox'];
 
 const fileTree = reactive({
   name: 'project',
@@ -24,8 +73,16 @@ const contextMenu = reactive({
   x: 0,
   y: 0,
   target: null,
-  targetType: null
+  targetType: null,
+  isReadonly: false
 });
+
+const isReadonlyPath = (path) => {
+  const normalizedPath = path.replace(/\\/g, '/');
+  return READONLY_PREFIXES.some(prefix =>
+    normalizedPath === prefix || normalizedPath.startsWith(prefix + '/')
+  );
+};
 
 const fetchFileTree = async () => {
   try {
@@ -46,6 +103,10 @@ const toggleFolder = (path) => {
   }
 };
 
+const collapseAll = () => {
+  expandedFolders.clear();
+};
+
 const selectFile = (file) => {
   selectedFile.value = file.path;
   emit('file-selected', file);
@@ -59,6 +120,7 @@ const showContextMenu = (event, node) => {
   contextMenu.y = event.clientY;
   contextMenu.target = node;
   contextMenu.targetType = node.type;
+  contextMenu.isReadonly = isReadonlyPath(node.path);
 };
 
 const hideContextMenu = () => {
@@ -67,6 +129,10 @@ const hideContextMenu = () => {
 
 const showCreateDialog = (type) => {
   hideContextMenu();
+  if (contextMenu.isReadonly) {
+    alert('此目录是只读目录，无法执行操作');
+    return;
+  }
   const name = prompt(`请输入${type === 'file' ? '文件名' : '文件夹名'}:`);
   if (!name) return;
 
@@ -87,7 +153,10 @@ const createNode = async (filePath, type) => {
         type: type
       })
     });
-    if (!response.ok) throw new Error(`创建${type === 'directory' ? '文件夹' : '文件'}失败`);
+    const data = await response.json();
+    if (!response.ok || data.status === 'error') {
+      throw new Error(data.message || `创建${type === 'directory' ? '文件夹' : '文件'}失败`);
+    }
     await fetchFileTree();
     emit('refresh');
   } catch (error) {
@@ -99,6 +168,10 @@ const createNode = async (filePath, type) => {
 const deleteNode = async () => {
   hideContextMenu();
   if (!contextMenu.target) return;
+  if (contextMenu.isReadonly) {
+    alert('此目录是只读目录，无法执行操作');
+    return;
+  }
 
   const confirmed = confirm(`确定要删除 ${contextMenu.target.name} 吗?${contextMenu.targetType === 'directory' ? '（文件夹内的所有内容也将被删除）' : ''}`);
   if (!confirmed) return;
@@ -111,7 +184,10 @@ const deleteNode = async () => {
         path: contextMenu.target.path
       })
     });
-    if (!response.ok) throw new Error('删除失败');
+    const data = await response.json();
+    if (!response.ok || data.status === 'error') {
+      throw new Error(data.message || '删除失败');
+    }
     await fetchFileTree();
     emit('refresh');
   } catch (error) {
@@ -123,6 +199,10 @@ const deleteNode = async () => {
 const renameNode = async () => {
   hideContextMenu();
   if (!contextMenu.target) return;
+  if (contextMenu.isReadonly) {
+    alert('此目录是只读目录，无法执行操作');
+    return;
+  }
 
   const newName = prompt('请输入新名称:', contextMenu.target.name);
   if (!newName || newName === contextMenu.target.name) return;
@@ -136,7 +216,10 @@ const renameNode = async () => {
         newName: newName
       })
     });
-    if (!response.ok) throw new Error('重命名失败');
+    const data = await response.json();
+    if (!response.ok || data.status === 'error') {
+      throw new Error(data.message || '重命名失败');
+    }
     await fetchFileTree();
     emit('refresh');
   } catch (error) {
@@ -151,131 +234,10 @@ watch(() => props.projectPath, () => {
 
 document.addEventListener('click', hideContextMenu);
 
-const getFileIcon = (name) => {
-  const ext = name.split('.').pop().toLowerCase();
-  const iconMap = {
-    'js': '📜',
-    'ts': '📘',
-    'vue': '💚',
-    'py': '🐍',
-    'json': '📋',
-    'css': '🎨',
-    'html': '🌐',
-    'md': '📝',
-    'txt': '📄',
-    'png': '🖼️',
-    'jpg': '🖼️',
-    'gif': '🖼️',
-    'svg': '🖼️'
-  };
-  return iconMap[ext] || '📄';
-};
-
-const renderTreeNode = (node, depth = 0) => {
-  const isFolder = node.type === 'directory';
-  const isExpanded = expandedFolders.has(node.path);
-  const paddingLeft = 8 + depth * 12;
-
-  return { isFolder, isExpanded, paddingLeft };
-};
-
 defineExpose({
   fetchFileTree
 });
 </script>
-
-<template>
-  <div class="file-tree">
-    <div class="file-tree-header">
-      <span class="file-tree-title">Explorer</span>
-      <div class="header-actions">
-        <button class="action-btn" @click="showCreateDialog('file')" title="新建文件">+</button>
-        <button class="action-btn" @click="showCreateDialog('directory')" title="新建文件夹">+📁</button>
-        <button class="action-btn danger" @click="deleteNode" v-if="contextMenu.target" title="删除">-</button>
-        <button class="refresh-btn" @click="fetchFileTree" title="刷新">↻</button>
-      </div>
-    </div>
-    <div class="file-tree-content">
-      <template v-for="child in fileTree.children" :key="child.path">
-        <div
-          v-if="child.type === 'directory'"
-          class="node-row directory"
-          :style="{ paddingLeft: '8px' }"
-          @click="toggleFolder(child.path)"
-          @contextmenu="showContextMenu($event, child)"
-        >
-          <span class="folder-arrow">{{ expandedFolders.has(child.path) ? 'v' : '>' }}</span>
-          <span class="folder-icon">📁</span>
-          <span class="node-name">{{ child.name }}</span>
-        </div>
-        <template v-if="child.type === 'directory' && expandedFolders.has(child.path)">
-          <template v-for="grandchild in child.children" :key="grandchild.path">
-            <div
-              v-if="grandchild.type === 'directory'"
-              class="node-row directory"
-              :style="{ paddingLeft: '20px' }"
-              @click="toggleFolder(grandchild.path)"
-              @contextmenu="showContextMenu($event, grandchild)"
-            >
-              <span class="folder-arrow">{{ expandedFolders.has(grandchild.path) ? 'v' : '>' }}</span>
-              <span class="folder-icon">📁</span>
-              <span class="node-name">{{ grandchild.name }}</span>
-            </div>
-            <template v-if="grandchild.type === 'directory' && expandedFolders.has(grandchild.path)">
-              <div
-                v-for="g2 in grandchild.children"
-                :key="g2.path"
-                class="node-row"
-                :class="g2.type"
-                :style="{ paddingLeft: '32px' }"
-                @click="g2.type === 'directory' ? toggleFolder(g2.path) : selectFile(g2)"
-                @contextmenu="showContextMenu($event, g2)"
-              >
-                <span class="folder-arrow" v-if="g2.type === 'directory'">{{ expandedFolders.has(g2.path) ? 'v' : '>' }}</span>
-                <span class="file-icon" v-else>{{ getFileIcon(g2.name) }}</span>
-                <span class="node-name">{{ g2.name }}</span>
-              </div>
-            </template>
-            <div
-              v-else-if="grandchild.type === 'file'"
-              class="node-row file"
-              :style="{ paddingLeft: '20px' }"
-              :class="{ selected: selectedFile === grandchild.path }"
-              @click="selectFile(grandchild)"
-              @contextmenu="showContextMenu($event, grandchild)"
-            >
-              <span class="file-icon">{{ getFileIcon(grandchild.name) }}</span>
-              <span class="node-name">{{ grandchild.name }}</span>
-            </div>
-          </template>
-        </template>
-        <div
-          v-else-if="child.type === 'file'"
-          class="node-row file"
-          :style="{ paddingLeft: '8px' }"
-          :class="{ selected: selectedFile === child.path }"
-          @click="selectFile(child)"
-          @contextmenu="showContextMenu($event, child)"
-        >
-          <span class="file-icon">{{ getFileIcon(child.name) }}</span>
-          <span class="node-name">{{ child.name }}</span>
-        </div>
-      </template>
-    </div>
-
-    <div
-      v-show="contextMenu.show"
-      class="context-menu"
-      :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
-    >
-      <div class="menu-item" @click="showCreateDialog('file')">新建文件</div>
-      <div class="menu-item" @click="showCreateDialog('directory')">新建文件夹</div>
-      <div class="menu-divider"></div>
-      <div class="menu-item" @click="renameNode">重命名</div>
-      <div class="menu-item danger" @click="deleteNode">删除</div>
-    </div>
-  </div>
-</template>
 
 <style scoped>
 .file-tree {
@@ -397,7 +359,7 @@ defineExpose({
   padding: 4px 0;
   min-width: 160px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+  z-index: 99999;
 }
 
 .menu-item {
@@ -417,6 +379,15 @@ defineExpose({
 .menu-item.danger:hover {
   background-color: #f48771;
   color: #1e1e1e;
+}
+
+.menu-item.readonly {
+  color: #888;
+  cursor: default;
+}
+
+.menu-item.readonly:hover {
+  background-color: transparent;
 }
 
 .menu-divider {

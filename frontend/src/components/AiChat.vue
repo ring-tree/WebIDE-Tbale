@@ -20,38 +20,57 @@ const chatHistory = ref([
 ])
 const isLoading = ref(false)
 
-// 发送消息
 const sendMessage = async () => {
   if (!inputMessage.value.trim() || isLoading.value) return
-  
-  // 添加用户消息
+
+  const userMsg = inputMessage.value.trim()
   chatHistory.value.push({
     role: 'user',
-    content: inputMessage.value,
+    content: userMsg,
     timestamp: new Date().toLocaleTimeString()
   })
-  
-  const userMessage = inputMessage.value
+
   inputMessage.value = ''
   isLoading.value = true
-  
-  // TODO: 调用后端 AI 接口
-  // const response = await fetch('/api/ai/chat', {
-  //   method: 'POST',
-  //   body: JSON.stringify({ message: userMessage })
-  // })
-  
-  // 模拟 AI 回复（后期替换为真实接口）
-  setTimeout(() => {
+
+  try {
+    const response = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: chatHistory.value.map(msg => ({
+          role: msg.role === 'assistant' ? 'assistant' : 'user',
+          content: msg.content
+        }))
+      })
+    })
+
+    const result = await response.json()
+
+    if (result.status === 'success' && result.data) {
+      chatHistory.value.push({
+        role: 'assistant',
+        content: result.data.content || '抱歉，我没有收到有效的回复。',
+        timestamp: new Date().toLocaleTimeString()
+      })
+    } else {
+      chatHistory.value.push({
+        role: 'assistant',
+        content: `错误: ${result.message || '未知错误'}`,
+        timestamp: new Date().toLocaleTimeString()
+      })
+    }
+  } catch (error) {
     chatHistory.value.push({
       role: 'assistant',
-      content: '收到你的消息：' + userMessage + '\n\n（此回复为模拟数据，后续将对接真实 AI 接口）',
+      content: `网络错误: ${error.message}`,
       timestamp: new Date().toLocaleTimeString()
     })
+  } finally {
     isLoading.value = false
-  }, 1000)
-  
-  emit('send-message', userMessage)
+  }
+
+  emit('send-message', userMsg)
 }
 
 // 按 Enter 发送

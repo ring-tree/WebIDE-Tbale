@@ -1,54 +1,73 @@
 @echo off
 chcp 65001 >nul
-REM Project Startup Script (Optimized for Portable Python)
+REM Project Startup Script
 setlocal enabledelayedexpansion
 
-REM ===================== CONFIG =====================
-REM 定义便携式Python环境路径
-SET PORTABLE_PYTHON=%~dp0backend\python313\python.exe
-REM ==================================================
-
-REM Set portable Node.js path
-SET NODE_DIR=%~dp0node_env
-SET PATH=%NODE_DIR%;%PATH%
-
-REM Check Node.js
-IF NOT EXIST "%NODE_DIR%\node.exe" (
-    echo Error: Portable Node.js not found at %NODE_DIR%\node.exe
-    echo Please extract Node.js binaries into the "node_env" folder.
-    pause
-    exit /b 1
-)
-echo ✅ Portable Node.js loaded
-
-REM Use only portable Python environment
-SET "PYTHON_EXE="
-IF EXIST "%PORTABLE_PYTHON%" (
-    SET "PYTHON_EXE=%PORTABLE_PYTHON%"
-    echo ✅ Portable Python environment detected
-) ELSE (
-    echo ERROR: No Python environment found!
-    echo Please ensure portable Python exists at:
-    echo %PORTABLE_PYTHON%
+REM ===================== Load Environment =====================
+REM 使用系统 Python 读取 env_config.py 中的环境配置
+python "%~dp0env_config.py" --export > "%~dp0tmp_env.txt" || (
+    echo ERROR: Failed to load env_config.py
     pause
     exit /b 1
 )
 
-echo Using Python: !PYTHON_EXE!
+FOR /F "usebackq tokens=1,* delims==" %%A IN ("%~dp0tmp_env.txt") DO (
+    IF "%%A"=="NODE_EXE" SET "NODE_EXE=%%B"
+    IF "%%A"=="PYTHON_EXE" SET "PYTHON_EXE=%%B"
+)
+del "%~dp0tmp_env.txt"
 
-REM Install frontend dependencies
-cd /d %~dp0frontend
+REM ===================== Validation =====================
+IF NOT DEFINED NODE_EXE (
+    echo ERROR: Failed to load NODE_EXE from env_config.py
+    pause
+    exit /b 1
+)
+
+IF NOT DEFINED PYTHON_EXE (
+    echo ERROR: Failed to load PYTHON_EXE from env_config.py
+    pause
+    exit /b 1
+)
+
+IF NOT EXIST "!NODE_EXE!" (
+    echo ERROR: Node.js not found at: !NODE_EXE!
+    echo Please check env_config.py configuration
+    echo Environment test failed.
+    pause
+    exit /b 1
+)
+
+IF NOT EXIST "!PYTHON_EXE!" (
+    echo ERROR: Python not found at: !PYTHON_EXE!
+    echo Please check env_config.py configuration
+    echo Environment test failed.
+    pause
+    exit /b 1
+)
+
+echo ✅ Node.js loaded from env_config.py: !NODE_EXE!
+echo ✅ Python loaded from env_config.py: !PYTHON_EXE!
+
+REM ===================== Setup Environment =====================
+REM 添加 Node.js 目录到 PATH
+FOR %%F IN ("!NODE_EXE!") DO SET "NODE_DIR=%%~dpF"
+SET "PATH=!NODE_DIR!;%PATH%"
+
+REM ===================== Start Services =====================
+REM 安装前端依赖
+cd /d "%~dp0frontend"
 IF NOT EXIST "node_modules" (
     echo Installing frontend dependencies...
     npm install
 )
 
-REM Start Backend Server (using the correct Python executable)
+REM 启动后端服务
 start "Backend Server" cmd /k "cd /d "%~dp0backend" && echo Starting Flask server... && echo Server running on http://localhost:5000 && "!PYTHON_EXE!" app.py"
 
 timeout /t 2 /nobreak >nul
 
-REM Start Frontend Server
+REM 启动前端服务
 start "Frontend Server" cmd /k "cd /d "%~dp0frontend" && echo Starting Frontend server... && echo Server running on http://localhost:5173 && npm run dev"
 
 echo.

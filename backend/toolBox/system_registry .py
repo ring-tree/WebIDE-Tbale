@@ -161,7 +161,7 @@ analysis_toolbox = [
                         name = 'impute_missing_values',
                         func = impute_missing_values,
                         display_name = "缺失值填充",
-                        description = "智能填补数据空洞，支持均值/中位数/众数/固定值/插值等多种策略",
+                        description = "智能填补数据空洞，支持均值/中位数/众数/固定值等多种策略，可指定填充列",
                         parameters = [
                             {"name": "strategy", "type": "select", "label": "填充策略", "default": "mean", "required": True, "options": [
                                 {"label": "均值", "value": "mean"},
@@ -169,7 +169,8 @@ analysis_toolbox = [
                                 {"label": "众数", "value": "most_frequent"},
                                 {"label": "固定值", "value": "constant"}
                             ]},
-                            {"name": "fill_value", "type": "number", "label": "固定填充值", "default": 0, "required": False}
+                            {"name": "fill_value", "type": "number", "label": "固定填充值", "default": 0, "required": False},
+                            {"name": "columns", "type": "multi_select", "label": "填充列", "default": [], "required": False}
                         ]
                     )
                 ]

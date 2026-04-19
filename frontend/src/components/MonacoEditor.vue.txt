@@ -1,0 +1,256 @@
+<template>
+  <div ref="editorContainer" class="editor-container"></div>
+</template>
+
+<script setup>
+import { ref, onMounted, onBeforeUnmount, shallowRef, watch } from 'vue'
+import * as monaco from 'monaco-editor'
+
+const props = defineProps({
+  modelValue: String,
+  language: {
+    type: String,
+    default: 'python'
+  }
+})
+
+const emit = defineEmits(['update:modelValue', 'editor-mounted'])
+
+const editorContainer = ref(null)
+const editor = shallowRef(null)
+let completionProvider = null
+let currentFetchAbort = null
+let fetchIdCounter = 0
+
+const completionCache = new Map()
+const MAX_CACHE_SIZE = 100
+
+const getCachedCompletions = (line, column, currentPrefix) => {
+  const key = `${line}:${column}`
+  const lowerPrefix = currentPrefix.toLowerCase()
+
+  if (completionCache.has(key)) {
+    const cached = completionCache.get(key)
+    if (cached.prefix.toLowerCase() === lowerPrefix) {
+      return cached.results
+    }
+  }
+
+  if (currentPrefix.length > 0) {
+    for (const [cacheKey, cached] of completionCache.entries()) {
+      const [cachedLine, cachedCol] = cacheKey.split(':')
+      if (parseInt(cachedLine) === line) {
+        const cachedLower = cached.prefix.toLowerCase()
+        if (lowerPrefix.startsWith(cachedLower)) {
+          completionCache.delete(cacheKey)
+          const newKey = `${line}:${column}`
+          completionCache.set(newKey, cached)
+          return cached.results
+        }
+      }
+    }
+  }
+  return null
+}
+
+const setCache = (line, column, prefix, results) => {
+  if (completionCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = completionCache.keys().next().value
+    completionCache.delete(firstKey)
+  }
+  const key = `${line}:${column}`
+  completionCache.set(key, { prefix, results })
+}
+
+const clearCompletionCache = () => {
+  completionCache.clear()
+}
+
+const triggerSuggestWidget = () => {
+  if (editor.value) {
+    editor.value.trigger('keyboard', 'editor.action.triggerSuggest', {})
+  }
+}
+
+const hideSuggestWidget = () => {
+  if (editor.value) {
+    editor.value.trigger('keyboard', 'hideSuggestWidget', {})
+  }
+}
+
+let pendingCompletions = null
+let pendingFetchId = null
+
+const fetchCompletions = (code, position) => {
+  const currentFetchId = ++fetchIdCounter
+  pendingFetchId = currentFetchId
+
+  if (currentFetchAbort) {
+    currentFetchAbort.abort()
+  }
+  const abortController = new AbortController()
+  currentFetchAbort = abortController
+
+  const { lineNumber, column } = position
+  const model = editor.value.getModel()
+  const lineContent = model.getLineContent(lineNumber)
+  const prefix = lineContent.substring(0, column - 1)
+
+  const cached = getCachedCompletions(lineNumber, column, prefix)
+  if (cached !== null) {
+    if (pendingFetchId !== currentFetchId) return
+    pendingCompletions = cached
+    triggerSuggestWidget()
+    return
+  }
+
+  fetch('/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, line: lineNumber, column }),
+    signal: abortController.signal
+  })
+  .then(response => {
+    if (!response.ok || pendingFetchId !== currentFetchId) return null
+    return response.json()
+  })
+  .then(data => {
+    if (!data || pendingFetchId !== currentFetchId) return
+    const completions = data.completions || []
+    pendingCompletions = completions
+    setCache(lineNumber, column, prefix, completions)
+    triggerSuggestWidget()
+  })
+  .catch(error => {
+    if (error.name === 'AbortError') return
+    console.error('Completion fetch error:', error)
+  })
+}
+
+onMounted(() => {
+  if (!editorContainer.value) return
+
+  editor.value = monaco.editor.create(editorContainer.value, {
+    value: props.modelValue,
+    language: props.language,
+    automaticLayout: true,
+    theme: 'vs-dark',
+    suggest: {
+      showWords: false,
+      showSnippets: false,
+      showIcons: true,
+      insertMode: 'replace',
+      preview: true,
+      filterGraceful: true
+    },
+    quickSuggestions: {
+      other: true,
+      comments: false,
+      strings: false
+    },
+    acceptSuggestionOnEnter: 'on',
+    tabCompletion: 'off',
+    tabSize: 4,
+    insertSpaces: true,
+    renderWhitespace: 'none',
+    useTabStops: false,
+    parameterHints: { enabled: false },
+    hover: { enabled: false },
+    wordBasedSuggestions: 'off'
+  })
+
+  editor.value.onDidChangeModelContent(() => {
+    const currentValue = editor.value.getValue()
+    emit('update:modelValue', currentValue)
+  })
+
+  let fetchTimer = null
+  editor.value.onDidChangeModelContent(() => {
+    if (fetchTimer) clearTimeout(fetchTimer)
+    fetchTimer = setTimeout(() => {
+      const position = editor.value.getPosition()
+      if (position) {
+        fetchCompletions(editor.value.getValue(), position)
+      }
+    }, 50)
+  })
+
+  editor.value.onDidChangeCursorPosition(() => {
+    pendingCompletions = null
+    clearCompletionCache()
+  })
+
+  editor.value.onKeyDown((e) => {
+    if (e.equals(monaco.KeyCode.Escape)) {
+      pendingCompletions = null
+      hideSuggestWidget()
+    }
+  })
+
+  completionProvider = monaco.languages.registerCompletionItemProvider(props.language, {
+    provideCompletionItems: (model, position) => {
+      if (!pendingCompletions || pendingCompletions.length === 0) {
+        return { suggestions: [] }
+      }
+
+      const lineContent = model.getLineContent(position.lineNumber)
+      const prefix = lineContent.substring(0, position.column - 1).toLowerCase()
+
+      const suggestions = pendingCompletions
+        .filter(item => item && item.name && item.name.trim() !== '')
+        .filter(item => item.name.toLowerCase().startsWith(prefix) || prefix === '')
+        .map(item => ({
+          label: item.name,
+          kind: monaco.languages.CompletionItemKind.Function,
+          insertText: item.name,
+          documentation: item.description || '',
+          detail: 'Python'
+        }))
+
+      if (suggestions.length === 0 && pendingCompletions.length > 0) {
+        return { suggestions: pendingCompletions.slice(0, 20).map(item => ({
+          label: item.name,
+          kind: monaco.languages.CompletionItemKind.Function,
+          insertText: item.name,
+          documentation: item.description || '',
+          detail: 'Python'
+        }))}
+      }
+
+      return { suggestions }
+    }
+  })
+
+  emit('editor-mounted', editor.value)
+
+  watch(() => props.modelValue, (newValue) => {
+    if (editor.value && newValue !== editor.value.getValue()) {
+      editor.value.setValue(newValue || '')
+      pendingCompletions = null
+      clearCompletionCache()
+      hideSuggestWidget()
+    }
+  })
+})
+
+onBeforeUnmount(() => {
+  if (currentFetchAbort) {
+    currentFetchAbort.abort()
+  }
+  if (completionProvider) {
+    completionProvider.dispose()
+  }
+  editor.value?.dispose()
+})
+
+defineExpose({
+  getEditor: () => editor.value
+})
+</script>
+
+<style scoped>
+.editor-container {
+  width: 100%;
+  height: 100%;
+}
+</style>
