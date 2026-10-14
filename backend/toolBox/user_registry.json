@@ -1,0 +1,34 @@
+[
+    {
+        "category_id": "user_custom_general",
+        "category_name": "用户自定义工具箱",
+        "tools": [
+            {
+                "name": "user_example_script",
+                "source": "user",
+                "display_name": "示例自定义脚本",
+                "description": "这是一个用户自定义工具的占位符",
+                "code_logic": "df.head()",
+                "parameters": [
+                    {
+                        "name": "param_example",
+                        "type": "string",
+                        "required": false,
+                        "default": "value",
+                        "description": "示例参数"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "category_id": "user_custom_cleaning",
+        "category_name": "我的清洗规则",
+        "tools": []
+    },
+    {
+        "category_id": "user_custom_modeling",
+        "category_name": "我的建模脚本",
+        "tools": []
+    }
+]

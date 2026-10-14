@@ -1,0 +1,8 @@
+{
+  "_readme": [
+    "本文件是 config/ai_config.local.json 的模板，用于存放真实密钥，不会被提交。",
+    "使用方式：复制本文件为 ai_config.local.json，填入真实 api_key 即可。",
+    "只需要写需要覆盖的字段，其余字段沿用 ai_config.json。"
+  ],
+  "api_key": "<your-dashscope-api-key>"
+}

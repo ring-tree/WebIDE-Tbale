@@ -1,0 +1,26 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# 依赖与构建产物
+node_modules/
+dist/
+dist-ssr/
+
+# Vite 配置文件编译时产生的临时文件
+vite.config.js.timestamp-*
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 编辑器
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.local
+
+# 说明：
+# package.json 与 package-lock.json 必须纳入版本控制 —— 此前被忽略，导致前端无法安装依赖。
+# 原先的 "*.js" / "*.mjs" 规则会误伤 vite.config.js、src/main.js 等源码文件，已一并移除。

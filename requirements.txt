@@ -1,0 +1,28 @@
+# ============================================================
+# 依赖清单已统一到 uv 管理，本文件仅作指引，不再作为安装入口。
+# ============================================================
+#
+# 权威依赖声明：backend/pyproject.toml
+# 锁定版本：    backend/uv.lock
+#
+# 安装方式（任选其一）：
+#
+#   1) 推荐：使用 uv（自动创建 backend/.venv）
+#        cd backend && uv sync
+#      或在项目根目录执行
+#        npm run install-backend
+#
+#   2) 不使用 uv 时，从锁文件导出后再安装：
+#        cd backend && uv export --no-hashes > req.lock.txt
+#        pip install -r req.lock.txt
+#
+# 背景说明：
+#   历史上根目录、backend/、setup.py 三处各自声明依赖且互相矛盾
+#   （根清单缺 openai / seaborn / pandas 等），按根清单安装会导致
+#   `ModuleNotFoundError: No module named 'openai'` 启动失败。
+#   该问题已通过「单一权威清单 + 本文件改为指引」解决。
+#
+#   setup.py 中的 install_requires 仅用于把 project/ 下的工具箱
+#   打包为可分发的 system_tool 库，与后端运行环境无关。
+#
+# 详见 快速实验手册.md

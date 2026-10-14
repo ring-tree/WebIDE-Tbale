@@ -1,0 +1,13 @@
+python313/
+data/
+out_file/
+
+# uv 虚拟环境
+.venv/
+
+# 访问令牌（本地生成，不得入库）
+.webide_token
+
+# 代码执行临时文件与工作目录
+temp_code.py
+.exec_scratch/

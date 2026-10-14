@@ -1,0 +1,32 @@
+{
+  "_readme": [
+    "全局 AI 配置文件 —— 项目内所有 AI 相关配置统一引用本文件。",
+    "密钥失效或更换模型时，只需修改本文件（或同目录的 ai_config.local.json），无需改动任何代码。",
+    "api_key 请勿填写在提交到仓库的本文件中；真实密钥写入 ai_config.local.json（已 gitignore）",
+    "或通过环境变量 DASHSCOPE_API_KEY 提供。加载优先级：环境变量 > ai_config.local.json > 本文件。"
+  ],
+
+  "enabled": true,
+  "provider": "dashscope",
+
+  "default_model": "qwen-plus",
+  "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+
+  "api_key": "",
+
+  "generation": {
+    "temperature": 0.7,
+    "max_tokens": 2048
+  },
+
+  "request_timeout": 60,
+  "max_context_messages": 20,
+
+  "available_models": [
+    {
+      "id": "qwen-plus",
+      "name": "通义千问 Plus",
+      "description": "阿里云通义千问大模型，通用能力均衡"
+    }
+  ]
+}

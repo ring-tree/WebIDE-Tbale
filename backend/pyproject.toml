@@ -1,0 +1,37 @@
+[project]
+name = "webide-backend"
+version = "1.0.0"
+description = "WebIDE-Tbale 后端：Flask 服务 + 数据分析工具箱运行时"
+requires-python = ">=3.13"
+dependencies = [
+    # --- Web 服务 ---
+    "flask>=3.1.0",
+    "flask-cors>=6.0.0",
+    # --- AI 对话（app.py 模块级 import openai）---
+    "openai>=1.0.0",
+    # --- 代码补全（app.py 通过子进程调用 jedi）---
+    "jedi>=0.19.0",
+    # --- 数据分析工具箱（project/toolBox/system_tool）---
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+    "matplotlib>=3.8.0",
+    "scikit-learn>=1.4.0",
+    # N_correlation_heatmap / N_confusion_matrix 顶层 import seaborn
+    "seaborn>=0.13.0",
+    # pandas 读写 Excel 的 IO 引擎（app.py 的 read_excel / to_excel）
+    "openpyxl>=3.1.0",
+    "xlrd>=2.0.1",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".."]
+addopts = "-q"
